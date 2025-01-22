@@ -114,7 +114,7 @@ export default function FoodBox() {
           onClick={generateFoods}
           className="w-full bg-secondary hover:bg-secondary-hover text-background font-bold py-3 px-6 rounded-lg shadow-lg transition-colors mb-4"
         >
-          Generoi ruoat
+          Luo ruokalista
         </button>
 
         {/* Tallennuspainike */}
