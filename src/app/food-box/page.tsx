@@ -1,105 +1,26 @@
 "use client";
 import { openDB } from "idb";
 import { useEffect, useState } from "react";
+import { foods } from "./foodList";
 
 export default function FoodBox() {
-  const [generatedFoods, setGeneratedFoods] = useState<string[]>([]);
-  const [foodCount, setFoodCount] = useState<number>(3);
+  const [generatedFoods, setGeneratedFoods] = useState<{ name: string; categories: string[]; prepTime: number; }[]>([]);
+  const [foodCount, setFoodCount] = useState(3);
   const [savedFoods, setSavedFoods] = useState<string[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<{ [key: string]: boolean | null }>({
+    "🍝": null,
+    "🥔": null,
+    "🍚": null,
+    "🥩": null,
+    "🐟": null,
+    "🐓": null,
+  });
+  const [selectedPrepTime, setSelectedPrepTime] = useState<number | "over60">(0);
 
   const dbName = "FoodDatabase";
   const storeName = "foods";
-
-  const foods = [
-    "Makaronilaatikko", "Katkarapupasta", "Pasta carbonara", "Lihapullapasta",
-    "Jauheliha ja makaroni", "Tonnikalapasta", "Lohipasta", "Lasagne/pikalasagne",
-    "Kanapasta", "Lihapullat ja perunamuusi", "Pinaattiletut ja perunamuusi",
-    "Uunilohi + potut", "Mureke ja perunat", "Karjalanpaisti", "Pihvi ja peruna",
-    "Kalaa pannulla ja potut", "Kana ja ranskikset", "Lohikeitto", "Savulohikeitto",
-    "Lihakeitto", "Kasvissosekeitto", "Jauhelihakastike ja potut", "Naudansuikaleet ja riisi",
-    "Jauheliha ja riisi", "Kana ja riisi", "Tortillat (jauheliha/kana/halloum)", 
-    "Kanasalaatti", "Riisipuuro ja soppa", "Mannapuuro", "Possu ja riisi",
-    "Nachopelti", "Lämpimät leivät", "Halloum pasta", "Pestopasta", "Pinaattikeitto",
-    "Crispy chicken", "Ristikkoperunat ja lihapullat", "Pitsaa", "Lohkoperunat ja kanaa tai pihviä",
-    "Quesedillat", "Kylmäsavulohipasta", "Kana tikkamasala ja riisi", "Kaalilaatikko",
-    "Wingsit", "Hampurilaiset", "Pitat", "Uunikana ja riisi", "Pyttipannu", "Chorizo pasta",
-    "Kinkkupiirakka", "Wok", "Kinkkukiusaus", "Pasta bolognese", "Tortilla pitsa",
-    "Pasta salaatti", "Uunifetapasta", "Kvinoa-feta-salaatti", "Wrapit (tonnikala/kana)",
-    "Kanakeitto", "Täytetyt paprikat/kesäkurpitsat", "Hodarit", "Nuudelit (keitto)",
-    "Uuniperunat", "Kalapuikot, perunamuusi ja kermaviilikastike", "Paistettu riisi",
-    "Nakkikeitto", "Kaalipekonisalaatti", "Turkkilainen pasta",
-  ];
-
-  // const foods = [
-  //   { name: "Makaronilaatikko", categories: ["pasta", "meat"], prepTime: 45 },
-  //   { name: "Katkarapupasta", categories: ["pasta", "fish"], prepTime: 30 },
-  //   { name: "Pasta carbonara", categories: ["pasta", "meat"], prepTime: 25 },
-  //   { name: "Lihapullapasta", categories: ["pasta", "meat"], prepTime: 35 },
-  //   { name: "Jauheliha ja makaroni", categories: ["pasta", "meat"], prepTime: 30 },
-  //   { name: "Tonnikalapasta", categories: ["pasta", "fish"], prepTime: 25 },
-  //   { name: "Lohipasta", categories: ["pasta", "fish"], prepTime: 30 },
-  //   { name: "Lasagne/pikalasagne", categories: ["pasta", "meat"], prepTime: 60 },
-  //   { name: "Kanapasta", categories: ["pasta", "meat"], prepTime: 30 },
-  //   { name: "Lihapullat ja perunamuusi", categories: ["potato", "meat"], prepTime: 50 },
-  //   { name: "Pinaattiletut ja perunamuusi", categories: ["potato"], prepTime: 40 },
-  //   { name: "Uunilohi + potut", categories: ["potato", "fish"], prepTime: 45 },
-  //   { name: "Mureke ja perunat", categories: ["potato", "meat"], prepTime: 50 },
-  //   { name: "Karjalanpaisti", categories: ["potato", "meat"], prepTime: 120 },
-  //   { name: "Pihvi ja peruna", categories: ["potato", "meat"], prepTime: 40 },
-  //   { name: "Kalaa pannulla ja potut", categories: ["potato", "fish"], prepTime: 30 },
-  //   { name: "Kana ja ranskikset", categories: ["potato", "meat"], prepTime: 35 },
-  //   { name: "Lohikeitto", categories: ["fish"], prepTime: 40 },
-  //   { name: "Savulohikeitto", categories: ["fish"], prepTime: 40 },
-  //   { name: "Lihakeitto", categories: ["meat"], prepTime: 60 },
-  //   { name: "Kasvissosekeitto", categories: [], prepTime: 30 },
-  //   { name: "Jauhelihakastike ja potut", categories: ["potato", "meat"], prepTime: 40 },
-  //   { name: "Naudansuikaleet ja riisi", categories: ["rice", "meat"], prepTime: 35 },
-  //   { name: "Jauheliha ja riisi", categories: ["rice", "meat"], prepTime: 30 },
-  //   { name: "Kana ja riisi", categories: ["rice", "meat"], prepTime: 30 },
-  //   { name: "Tortillat (jauheliha/kana/halloum)", categories: ["meat"], prepTime: 20 },
-  //   { name: "Kanasalaatti", categories: ["meat"], prepTime: 20 },
-  //   { name: "Riisipuuro ja soppa", categories: ["rice"], prepTime: 40 },
-  //   { name: "Mannapuuro", categories: [], prepTime: 20 },
-  //   { name: "Possu ja riisi", categories: ["rice", "meat"], prepTime: 35 },
-  //   { name: "Nachopelti", categories: ["meat"], prepTime: 25 },
-  //   { name: "Lämpimät leivät", categories: [], prepTime: 15 },
-  //   { name: "Halloum pasta", categories: ["pasta"], prepTime: 25 },
-  //   { name: "Pestopasta", categories: ["pasta"], prepTime: 20 },
-  //   { name: "Pinaattikeitto", categories: [], prepTime: 30 },
-  //   { name: "Crispy chicken", categories: ["meat"], prepTime: 30 },
-  //   { name: "Ristikkoperunat ja lihapullat", categories: ["potato", "meat"], prepTime: 40 },
-  //   { name: "Pitsaa", categories: [], prepTime: 60 },
-  //   { name: "Lohkoperunat ja kanaa tai pihviä", categories: ["potato", "meat"], prepTime: 45 },
-  //   { name: "Quesedillat", categories: ["meat"], prepTime: 25 },
-  //   { name: "Kylmäsavulohipasta", categories: ["pasta", "fish"], prepTime: 30 },
-  //   { name: "Kana tikkamasala ja riisi", categories: ["rice", "meat"], prepTime: 40 },
-  //   { name: "Kaalilaatikko", categories: [], prepTime: 60 },
-  //   { name: "Wingsit", categories: ["meat"], prepTime: 30 },
-  //   { name: "Hampurilaiset", categories: ["meat"], prepTime: 45 },
-  //   { name: "Pitat", categories: [], prepTime: 20 },
-  //   { name: "Uunikana ja riisi", categories: ["rice", "meat"], prepTime: 50 },
-  //   { name: "Pyttipannu", categories: ["potato"], prepTime: 30 },
-  //   { name: "Chorizo pasta", categories: ["pasta", "meat"], prepTime: 30 },
-  //   { name: "Kinkkupiirakka", categories: ["meat"], prepTime: 45 },
-  //   { name: "Wok", categories: [], prepTime: 30 },
-  //   { name: "Kinkkukiusaus", categories: ["potato", "meat"], prepTime: 45 },
-  //   { name: "Pasta bolognese", categories: ["pasta", "meat"], prepTime: 30 },
-  //   { name: "Tortilla pitsa", categories: [], prepTime: 20 },
-  //   { name: "Pasta salaatti", categories: ["pasta"], prepTime: 20 },
-  //   { name: "Uunifetapasta", categories: ["pasta"], prepTime: 30 },
-  //   { name: "Kvinoa-feta-salaatti", categories: [], prepTime: 25 },
-  //   { name: "Wrapit (tonnikala/kana)", categories: ["fish", "meat"], prepTime: 20 },
-  //   { name: "Kanakeitto", categories: ["meat"], prepTime: 40 },
-  //   { name: "Täytetyt paprikat/kesäkurpitsat", categories: ["meat"], prepTime: 50 },
-  //   { name: "Hodarit", categories: ["meat"], prepTime: 20 },
-  //   { name: "Nuudelit (keitto)", categories: [], prepTime: 15 },
-  //   { name: "Uuniperunat", categories: ["potato"], prepTime: 50 },
-  //   { name: "Kalapuikot, perunamuusi ja kermaviilikastike", categories: ["potato", "fish"], prepTime: 40 },
-  //   { name: "Fried rice", categories: ["rice"], prepTime: 30 },
-  //   { name: "Nakkikeitto", categories: ["meat"], prepTime: 40 },
-  //   { name: "Kaalipekonisalaatti", categories: ["meat"], prepTime: 20 },
-  //   { name: "Turkkilainen pasta", categories: ["pasta"], prepTime: 30 },
-  // ];
+  const categories = ["🍝", "🥔", "🍚", "🥩", "🐟", "🐓"];
+  const prepTimeOptions = [15, 30, 45, 60, "over60"];
 
   const initDB = async () => {
     return openDB(dbName, 1, {
@@ -111,110 +32,192 @@ export default function FoodBox() {
     });
   };
 
-  // Tallenna kaikki generoidut ruoat tietokantaan
-  const saveFoodsToDB = async (foodsToSave: string[]) => {
+
+  const saveFoodsToDB = async (foodsToSave: { name: string; categories: string[]; prepTime: number; }[]) => {
     const db = await initDB();
     const tx = db.transaction(storeName, "readwrite");
-    await tx.store.clear(); // Poistaa aiemmat ruoat ennen tallennusta
+    await tx.store.clear(); 
     for (const food of foodsToSave) {
-      await tx.store.add({ food });
+      await tx.store.add(food);
     }
     await tx.done;
-    fetchSavedFoods(); // Päivitä tallennetut ruoat
+    fetchSavedFoods(); 
   };
 
-  // Hae kaikki tallennetut ruoat
   const fetchSavedFoods = async () => {
     const db = await initDB();
     const tx = db.transaction(storeName, "readonly");
     const allFoods = await tx.store.getAll();
-    setSavedFoods(allFoods.map((entry) => entry.food));
+    setSavedFoods(allFoods.map((entry) => entry.name));
   };
 
-  // Generoi ruoat
+  const toggleCategoryFilter = (category: string) => {
+    setSelectedCategories((prev) => {
+      const newState = { ...prev };
+      if (newState[category] === null) {
+        newState[category] = true;
+      } else if (newState[category] === true) {
+        newState[category] = false;
+      } else {
+        newState[category] = null;
+      }
+      return newState;
+    });
+  };
+
+  // const handleCategoryChange = (category: string) => {
+  //   setSelectedCategories((prev) =>
+  //     prev.includes(category) ? prev.filter((c) => c !== category) : [...prev, category]
+  //   );
+  // };
+
+
   const generateFoods = () => {
-    const shuffledFoods = [...foods].sort(() => Math.random() - 0.5);
+    let filteredFoods = foods;
+
+    // Suodatus kategorioiden mukaan
+    filteredFoods = filteredFoods.filter((food) => {
+      return Object.entries(selectedCategories).every(([category, state]) => {
+        if (state === null) return true;
+        if (state === true) return food.categories.includes(category);
+        if (state === false) return !food.categories.includes(category);
+        return true;
+      });
+    });
+
+    // Suodatus valmistusajan mukaan
+    if (selectedPrepTime !== 0) {
+      filteredFoods = filteredFoods.filter((food) =>
+        selectedPrepTime === "over60" ? food.prepTime > 60 : food.prepTime === selectedPrepTime
+      );
+    }
+
+    const shuffledFoods = [...filteredFoods].sort(() => Math.random() - 0.5);
     setGeneratedFoods(shuffledFoods.slice(0, foodCount));
   };
 
-  // Generoi ruoka uudelleen (vain valittu ruoka)
   const regenerateFood = (index: number) => {
     const shuffledFoods = [...foods].sort(() => Math.random() - 0.5);
-    const newFood = shuffledFoods[0]; // Valitse uusi satunnainen ruoka
+    const newFood = shuffledFoods[0];
     setGeneratedFoods((prevFoods) => {
       const newFoods = [...prevFoods];
-      newFoods[index] = newFood; // Korvataan vanha ruoka uudella
+      newFoods[index] = newFood;
       return newFoods;
     });
   };
 
-  // Alusta tietokanta ja hae tallennetut ruoat, kun komponentti ladataan
+
+
   useEffect(() => {
     fetchSavedFoods();
   }, []);
 
   return (
     <div className="flex flex-col items-center text-center">
-      <h2 className="text-2xl font-bold text-main mb-4">Valitse ja generoi ruokaa!</h2>
-
-      <div className="w-full max-w-md bg-white rounded-lg shadow-md p-6 border border-gray-200">
-        {/* Numeroiden valinta */}
-        <div className="mb-4">
-          <label
-            htmlFor="food-count"
-            className="block text-lg font-medium text-foreground mb-2"
-          >
-            Kuinka monta ruokaa haluat?
-          </label>
-          <select
-            id="food-count"
-            value={foodCount}
-            onChange={(e) => setFoodCount(Number(e.target.value))}
-            className="w-full bg-accent text-foreground px-4 py-2 rounded-lg font-medium shadow-md focus:outline-none focus:ring-2 focus:ring-main"
-          >
-            {[...Array(7)].map((_, i) => (
-              <option key={i} value={i + 1}>
-                {i + 1}
-              </option>
-            ))}
-          </select>
+      <div className="w-full max-w-md bg-white rounded-lg shadow-md p-3 border border-gray-200">
+        {/* Numeroiden ja ajan valinta rinnakkain */}
+        <div className="mb-4 flex space-x-4">
+          <div className="flex-1">
+            <label htmlFor="food-count" className="block text-lg font-medium text-foreground mb-2">
+              🔢❓
+            </label>
+            <select
+              id="food-count"
+              value={foodCount}
+              onChange={(e) => setFoodCount(Number(e.target.value))}
+              className="w-full bg-accent text-foreground px-4 py-2 rounded-lg font-medium shadow-md focus:outline-none focus:ring-2 focus:ring-main"
+            >
+              {[...Array(7)].map((_, i) => (
+                <option key={i} value={i + 1}>
+                  {i + 1}
+                </option>
+              ))}
+            </select>
+          </div>
+  
+          <div className="flex-1">
+            <label htmlFor="prep-time" className="block text-lg font-medium text-foreground mb-2">
+            ⏳
+            </label>
+            <select
+              id="prep-time"
+              value={selectedPrepTime}
+              onChange={(e) => setSelectedPrepTime(e.target.value === "over60" ? "over60" : Number(e.target.value))}
+              className="w-full bg-accent text-foreground px-4 py-2 rounded-lg font-medium shadow-md focus:outline-none focus:ring-2 focus:ring-main"
+            >
+              <option value={0}>Kaikki ajat</option>
+              {prepTimeOptions.map((time) => (
+                <option key={time} value={time}>
+                  {time === "over60" ? "Yli 60 min" : `${time} min`}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
-
-        {/* Generointipainike */}
-        <button
-          onClick={generateFoods}
-          className="w-full bg-secondary hover:bg-secondary-hover text-background font-bold py-3 px-6 rounded-lg shadow-lg transition-colors mb-4"
-        >
-          Luo ruokalista
-        </button>
-
-        {/* Tallennuspainike */}
-        {generatedFoods.length > 0 && (
+  
+        {/* Kategoriat ja niiden painikkeet */}
+        <div className="mb-4">
+          <label className="block text-lg font-medium text-foreground mb-2">
+            Valitse kategoria(t)
+          </label>
+          <div className="grid grid-cols-6 gap-2">
+            {categories.map((category) => (
+              <button
+                key={category}
+                onClick={() => toggleCategoryFilter(category)}
+                className={`flex items-center justify-center w-7 h-7 text-sm rounded-lg border-2 font-bold transition ${
+                  selectedCategories[category] === true
+                    ? "bg-green-500 text-white border-green-700"
+                    : selectedCategories[category] === false
+                    ? "bg-red-500 text-white border-red-700"
+                    : "bg-gray-200 text-gray-700 border-gray-400"
+                }`}
+              >
+                {category}
+              </button>
+            ))}
+          </div>
+        </div>
+  
+        {/* Painikkeet rinnakkain */}
+        <div className="mb-4 flex space-x-4">
           <button
-            onClick={() => saveFoodsToDB(generatedFoods)} // Tallentaa kaikki generoidut ruoat
-            className="w-full bg-main hover:bg-main-light text-background font-bold py-3 px-6 rounded-lg shadow-lg transition-colors mb-4"
+            onClick={generateFoods}
+            className="w-full bg-secondary hover:bg-secondary-hover text-background font-bold py-3 px-6 rounded-lg shadow-lg transition-colors"
           >
-            Tallenna ruoat
+            Luo
           </button>
-        )}
-
+  
+          {generatedFoods.length > 0 && (
+            <button
+              onClick={() => saveFoodsToDB(generatedFoods)}
+              className="w-full bg-main hover:bg-main-light text-background font-bold py-3 px-6 rounded-lg shadow-lg transition-colors"
+            >
+              Tallenna
+            </button>
+          )}
+        </div>
+  
         {/* Generoidut ruoat */}
         {generatedFoods.length > 0 && (
           <ul className="mt-6 space-y-2">
             {generatedFoods.map((food, index) => (
-              <li key={index} className="text-lg font-medium text-accent">
-               {food} 
+              <li key={index} className="text-lg font-medium text-accent flex items-center">
+                <span className="bg-gray-200 text-gray-700 text-sm font-semibold px-2 py-1 rounded-md mr-2">
+                  ⏳ {food.prepTime} min
+                </span>
+                {food.name}
                 <span
-                 onClick={() => regenerateFood(index)} // Generoi valitun ruoan uudelleen
-                 className="ml-4 text-sm text-primary cursor-pointer"
+                  onClick={() => regenerateFood(index)}
+                  className="ml-4 text-sm text-primary cursor-pointer"
                 >
-                 🔄
+                  🔄
                 </span>
               </li>
             ))}
           </ul>
         )}
-
+  
         {/* Tallennetut ruoat */}
         {savedFoods.length > 0 && (
           <div className="mt-8">
