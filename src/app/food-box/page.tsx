@@ -16,6 +16,8 @@ export default function FoodBox() {
     "🐓": null,
   });
   const [selectedPrepTime, setSelectedPrepTime] = useState<number | "over60">(0);
+  const [showErrorMessage, setShowErrorMessage] = useState(false);
+  const [hasGeneratedFoods, setHasGeneratedFoods] = useState(false);
 
   const dbName = "FoodDatabase";
   const storeName = "foods";
@@ -54,38 +56,24 @@ export default function FoodBox() {
   const toggleCategoryFilter = (category: string) => {
     setSelectedCategories((prev) => {
       const newState = { ...prev };
-      if (newState[category] === null) {
-        newState[category] = true;
-      } else if (newState[category] === true) {
-        newState[category] = false;
-      } else {
-        newState[category] = null;
-      }
+      newState[category] = !newState[category];  
       return newState;
     });
   };
 
-  // const handleCategoryChange = (category: string) => {
-  //   setSelectedCategories((prev) =>
-  //     prev.includes(category) ? prev.filter((c) => c !== category) : [...prev, category]
-  //   );
-  // };
+
 
 
   const generateFoods = () => {
     let filteredFoods = foods;
 
-    // Suodatus kategorioiden mukaan
     filteredFoods = filteredFoods.filter((food) => {
-      return Object.entries(selectedCategories).every(([category, state]) => {
-        if (state === null) return true;
-        if (state === true) return food.categories.includes(category);
-        if (state === false) return !food.categories.includes(category);
+      return Object.entries(selectedCategories).every(([category, isSelected]) => {
+        if (isSelected) return food.categories.includes(category);
         return true;
       });
     });
 
-    // Suodatus valmistusajan mukaan
     if (selectedPrepTime !== 0) {
       filteredFoods = filteredFoods.filter((food) =>
         selectedPrepTime === "over60" ? food.prepTime > 60 : food.prepTime === selectedPrepTime
@@ -94,11 +82,30 @@ export default function FoodBox() {
 
     const shuffledFoods = [...filteredFoods].sort(() => Math.random() - 0.5);
     setGeneratedFoods(shuffledFoods.slice(0, foodCount));
+
+    setHasGeneratedFoods(true); 
+    setShowErrorMessage(shuffledFoods.length === 0); 
   };
 
   const regenerateFood = (index: number) => {
-    const shuffledFoods = [...foods].sort(() => Math.random() - 0.5);
+    let filteredFoods = foods;
+  
+    filteredFoods = filteredFoods.filter((food) => {
+      return Object.entries(selectedCategories).every(([category, isSelected]) => {
+        if (isSelected) return food.categories.includes(category);
+        return true;
+      });
+    });
+  
+    if (selectedPrepTime !== 0) {
+      filteredFoods = filteredFoods.filter((food) =>
+        selectedPrepTime === "over60" ? food.prepTime > 60 : food.prepTime === selectedPrepTime
+      );
+    }
+  
+    const shuffledFoods = [...filteredFoods].sort(() => Math.random() - 0.5);
     const newFood = shuffledFoods[0];
+    
     setGeneratedFoods((prevFoods) => {
       const newFoods = [...prevFoods];
       newFoods[index] = newFood;
@@ -137,7 +144,7 @@ export default function FoodBox() {
   
           <div className="flex-1">
             <label htmlFor="prep-time" className="block text-lg font-medium text-foreground mb-2">
-            ⏳
+              ⏳
             </label>
             <select
               id="prep-time"
@@ -155,26 +162,23 @@ export default function FoodBox() {
           </div>
         </div>
   
-        {/* Kategoriat ja niiden painikkeet */}
+        {/* Kategoriat ja niiden valintaruudut */}
         <div className="mb-4">
           <label className="block text-lg font-medium text-foreground mb-2">
             Valitse kategoria(t)
           </label>
           <div className="grid grid-cols-6 gap-2">
             {categories.map((category) => (
-              <button
-                key={category}
-                onClick={() => toggleCategoryFilter(category)}
-                className={`flex items-center justify-center w-7 h-7 text-sm rounded-lg border-2 font-bold transition ${
-                  selectedCategories[category] === true
-                    ? "bg-green-500 text-white border-green-700"
-                    : selectedCategories[category] === false
-                    ? "bg-red-500 text-white border-red-700"
-                    : "bg-gray-200 text-gray-700 border-gray-400"
-                }`}
-              >
-                {category}
-              </button>
+              <div key={category} className="flex items-center">
+                <input
+                  type="checkbox"
+                  id={category}
+                  checked={selectedCategories[category] ?? false}
+                  onChange={() => toggleCategoryFilter(category)}
+                  className="mr-2"
+                />
+                <label htmlFor={category}>{category}</label>
+              </div>
             ))}
           </div>
         </div>
@@ -198,7 +202,12 @@ export default function FoodBox() {
           )}
         </div>
   
-        {/* Generoidut ruoat */}
+        {hasGeneratedFoods && showErrorMessage && generatedFoods.length === 0 && (
+          <div className="mt-6 text-lg text-red-500">
+            Ei ruokia näillä valinnoilla.
+          </div>
+        )}
+
         {generatedFoods.length > 0 && (
           <ul className="mt-6 space-y-2">
             {generatedFoods.map((food, index) => (
