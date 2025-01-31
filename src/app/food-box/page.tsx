@@ -34,7 +34,6 @@ export default function FoodBox() {
     });
   };
 
-
   const saveFoodsToDB = async (foodsToSave: { name: string; categories: string[]; prepTime: number; }[]) => {
     const db = await initDB();
     const tx = db.transaction(storeName, "readwrite");
@@ -61,19 +60,25 @@ export default function FoodBox() {
     });
   };
 
-
-
+  // Apumetodi, joka hakee kaikki valitut kategoriat taulukkoon
+  const getSelectedCategories = () => {
+    return Object.entries(selectedCategories)
+      .filter(([_, isSelected]) => isSelected)
+      .map(([category]) => category);
+  };
 
   const generateFoods = () => {
     let filteredFoods = foods;
+    const activeCategories = getSelectedCategories();
 
-    filteredFoods = filteredFoods.filter((food) => {
-      return Object.entries(selectedCategories).every(([category, isSelected]) => {
-        if (isSelected) return food.categories.includes(category);
-        return true;
+    // Jos jotakin kategorioita on valittu, suodatetaan ruoat niin, että niissä on ainakin yksi näistä
+    if (activeCategories.length > 0) {
+      filteredFoods = filteredFoods.filter((food) => {
+        return food.categories.some((cat) => activeCategories.includes(cat));
       });
-    });
+    }
 
+    // Suodatetaan myös valmistusaikojen mukaan
     if (selectedPrepTime !== 0) {
       filteredFoods = filteredFoods.filter((food) =>
         selectedPrepTime === "over60" ? food.prepTime > 60 : food.prepTime === selectedPrepTime
@@ -89,31 +94,29 @@ export default function FoodBox() {
 
   const regenerateFood = (index: number) => {
     let filteredFoods = foods;
-  
-    filteredFoods = filteredFoods.filter((food) => {
-      return Object.entries(selectedCategories).every(([category, isSelected]) => {
-        if (isSelected) return food.categories.includes(category);
-        return true;
+    const activeCategories = getSelectedCategories();
+
+    if (activeCategories.length > 0) {
+      filteredFoods = filteredFoods.filter((food) => {
+        return food.categories.some((cat) => activeCategories.includes(cat));
       });
-    });
-  
+    }
+
     if (selectedPrepTime !== 0) {
       filteredFoods = filteredFoods.filter((food) =>
         selectedPrepTime === "over60" ? food.prepTime > 60 : food.prepTime === selectedPrepTime
       );
     }
-  
+
     const shuffledFoods = [...filteredFoods].sort(() => Math.random() - 0.5);
     const newFood = shuffledFoods[0];
-    
+
     setGeneratedFoods((prevFoods) => {
       const newFoods = [...prevFoods];
       newFoods[index] = newFood;
       return newFoods;
     });
   };
-
-
 
   useEffect(() => {
     fetchSavedFoods();
@@ -125,14 +128,14 @@ export default function FoodBox() {
         {/* Numeroiden ja ajan valinta rinnakkain */}
         <div className="mb-4 flex space-x-4">
           <div className="flex-1">
-            <label htmlFor="food-count" className="block text-lg font-medium text-foreground mb-2">
+            <label htmlFor="food-count" className="block text-lg font-medium text-background mb-2">
               🔢❓
             </label>
             <select
               id="food-count"
               value={foodCount}
               onChange={(e) => setFoodCount(Number(e.target.value))}
-              className="w-full bg-accent text-foreground px-4 py-2 rounded-lg font-medium shadow-md focus:outline-none focus:ring-2 focus:ring-main"
+              className="w-full bg-accent text-background px-4 py-2 rounded-lg font-medium shadow-md focus:outline-none focus:ring-2 focus:ring-main"
             >
               {[...Array(7)].map((_, i) => (
                 <option key={i} value={i + 1}>
@@ -143,14 +146,14 @@ export default function FoodBox() {
           </div>
   
           <div className="flex-1">
-            <label htmlFor="prep-time" className="block text-lg font-medium text-foreground mb-2">
+            <label htmlFor="prep-time" className="block text-lg font-medium text-background mb-2">
               ⏳
             </label>
             <select
               id="prep-time"
               value={selectedPrepTime}
               onChange={(e) => setSelectedPrepTime(e.target.value === "over60" ? "over60" : Number(e.target.value))}
-              className="w-full bg-accent text-foreground px-4 py-2 rounded-lg font-medium shadow-md focus:outline-none focus:ring-2 focus:ring-main"
+              className="w-full bg-accent text-background px-4 py-2 rounded-lg font-medium shadow-md focus:outline-none focus:ring-2 focus:ring-main"
             >
               <option value={0}>Kaikki ajat</option>
               {prepTimeOptions.map((time) => (
@@ -207,18 +210,18 @@ export default function FoodBox() {
             Ei ruokia näillä valinnoilla.
           </div>
         )}
-
+  
         {generatedFoods.length > 0 && (
           <ul className="mt-6 space-y-2">
             {generatedFoods.map((food, index) => (
-              <li key={index} className="text-lg font-medium text-accent flex items-center">
-                <span className="bg-gray-200 text-gray-700 text-sm font-semibold px-2 py-1 rounded-md mr-2">
+              <li key={index} className="text-base font-medium text-foreground flex items-center">
+                <span className="bg-gray-200 text-gray-700 text-sm font-semibold px-1 py-1 rounded-md mr-2">
                   ⏳ {food.prepTime} min
                 </span>
                 {food.name}
                 <span
                   onClick={() => regenerateFood(index)}
-                  className="ml-4 text-sm text-primary cursor-pointer"
+                  className="ml-2 text-sm text-primary cursor-pointer"
                 >
                   🔄
                 </span>
